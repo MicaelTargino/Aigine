@@ -3,13 +3,5 @@
   "outputDirectory": ".next",
   "devCommand": "npm run dev",
   "installCommand": "npm install",
-  "framework": "nextjs",
-  "env": {
-    "NEXT_PUBLIC_SUPABASE_URL": "@supabase_url",
-    "NEXT_PUBLIC_SUPABASE_ANON_KEY": "@supabase_anon_key",
-    "ADMIN_USER": "@admin_user",
-    "ADMIN_PASS": "@admin_pass",
-    "SESSION_SECRET": "@session_secret",
-    "IP_HASH_SALT": "@ip_hash_salt"
-  }
+  "framework": "nextjs"
 }
