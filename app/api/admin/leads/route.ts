@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/db'
+import { supabase } from '@/lib/supabase'
 
 export async function GET(request: NextRequest) {
   try {
@@ -7,28 +7,40 @@ export async function GET(request: NextRequest) {
     const plan = searchParams.get('plan')
     const urgency = searchParams.get('urgency')
 
-    const where: any = {}
-    if (plan) where.plan = plan
-    if (urgency) where.urgency = urgency
+    let query = supabase
+      .from('leads')
+      .select('id, name, email, company, role, team_size, plan, budget_range, urgency, created_at')
+      .order('created_at', { ascending: false })
 
-    const leads = await prisma.lead.findMany({
-      where,
-      orderBy: { createdAt: 'desc' },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        company: true,
-        role: true,
-        teamSize: true,
-        plan: true,
-        budgetRange: true,
-        urgency: true,
-        createdAt: true
-      }
-    })
+    if (plan) {
+      query = query.eq('plan', plan)
+    }
+    if (urgency) {
+      query = query.eq('urgency', urgency)
+    }
 
-    return NextResponse.json(leads)
+    const { data: leads, error } = await query
+
+    if (error) {
+      console.error('Failed to fetch leads:', error)
+      return NextResponse.json({ error: 'Failed to fetch leads' }, { status: 500 })
+    }
+
+    // Transform snake_case to camelCase for compatibility
+    const transformedLeads = leads?.map(lead => ({
+      id: lead.id,
+      name: lead.name,
+      email: lead.email,
+      company: lead.company,
+      role: lead.role,
+      teamSize: lead.team_size,
+      plan: lead.plan,
+      budgetRange: lead.budget_range,
+      urgency: lead.urgency,
+      createdAt: lead.created_at
+    })) || []
+
+    return NextResponse.json(transformedLeads)
   } catch (error) {
     console.error('Failed to fetch leads:', error)
     return NextResponse.json({ error: 'Failed to fetch leads' }, { status: 500 })
