@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/db'
+import { supabase } from '@/lib/supabase'
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,32 +12,42 @@ export async function POST(request: NextRequest) {
     
     let visitorId: string | null = null
     if (vid) {
-      const visitor = await prisma.visitor.findUnique({
-        where: { vid }
-      })
+      const { data: visitor } = await supabase
+        .from('visitors')
+        .select('id')
+        .eq('vid', vid)
+        .single()
+      
       visitorId = visitor?.id || null
     }
     
     // Create lead
-    const lead = await prisma.lead.create({
-      data: {
-        visitorId,
+    const { data: lead, error } = await supabase
+      .from('leads')
+      .insert([{
+        visitor_id: visitorId,
         name: body.name,
         email: body.email,
         company: body.company,
         role: body.role,
-        teamSize: body.teamSize,
-        repoSize: body.repoSize,
+        team_size: body.teamSize,
+        repo_size: body.repoSize,
         plan: body.plan,
-        budgetRange: body.budgetRange,
-        noBrainerPrice: body.noBrainerPrice ? parseFloat(body.noBrainerPrice) : null,
+        budget_range: body.budgetRange,
+        no_brainer_price: body.noBrainerPrice ? parseFloat(body.noBrainerPrice) : null,
         urgency: body.urgency,
         disappointment: body.disappointment,
-        aiTools: body.aiTools,
+        ai_tools: body.aiTools,
         pain: body.pain,
         notes: body.notes || {}
-      }
-    })
+      }])
+      .select()
+      .single()
+    
+    if (error) {
+      console.error('Lead creation error:', error)
+      return NextResponse.json({ error: 'Failed to create lead' }, { status: 500 })
+    }
     
     return NextResponse.json({ success: true, leadId: lead.id })
   } catch (error) {

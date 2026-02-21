@@ -2,14 +2,10 @@
 
 import { useEffect } from 'react'
 import { getAnalytics } from '@/lib/analytics/client'
-import Hero from '@/components/landing/Hero'
-import SocialProof from '@/components/landing/SocialProof'
-import HowItWorks from '@/components/landing/HowItWorks'
-import Demo from '@/components/landing/Demo'
-import Features from '@/components/landing/Features'
-import Pricing from '@/components/landing/Pricing'
-import FAQ from '@/components/landing/FAQ'
-import FinalCTA from '@/components/landing/FinalCTA'
+import HeroV2 from '@/components/landing/HeroV2'
+import FeaturesV2 from '@/components/landing/FeaturesV2'
+import PricingV2 from '@/components/landing/PricingV2'
+import ParticleBackground from '@/components/effects/ParticleBackground'
 
 export default function Home() {
   useEffect(() => {
@@ -22,15 +18,11 @@ export default function Home() {
   }, [])
 
   return (
-    <main className="min-h-screen">
-      <Hero />
-      <SocialProof />
-      <HowItWorks />
-      <Demo />
-      <Features />
-      <Pricing />
-      <FAQ />
-      <FinalCTA />
+    <main className="min-h-screen bg-black">
+      <ParticleBackground />
+      <HeroV2 />
+      <FeaturesV2 />
+      <PricingV2 />
     </main>
   )
 }

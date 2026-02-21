@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/db'
+import { supabase } from '@/lib/supabase'
 import crypto from 'crypto'
 
 // Rate limiting map (in production, use Redis)
@@ -51,55 +51,82 @@ export async function POST(request: NextRequest) {
     }
     
     // Get or create visitor
-    let visitor = await prisma.visitor.findUnique({
-      where: { vid }
-    })
+    let { data: visitor, error: visitorError } = await supabase
+      .from('visitors')
+      .select('*')
+      .eq('vid', vid)
+      .single()
     
     if (!visitor) {
-      visitor = await prisma.visitor.create({
-        data: { vid }
-      })
+      const { data: newVisitor, error: createError } = await supabase
+        .from('visitors')
+        .insert([{ vid }])
+        .select()
+        .single()
+      
+      if (createError) {
+        console.error('Error creating visitor:', createError)
+        return NextResponse.json({ error: 'Failed to create visitor' }, { status: 500 })
+      }
+      visitor = newVisitor
     } else {
-      await prisma.visitor.update({
-        where: { id: visitor.id },
-        data: { lastSeenAt: new Date() }
-      })
+      // Update last_seen_at
+      await supabase
+        .from('visitors')
+        .update({ last_seen_at: new Date().toISOString() })
+        .eq('id', visitor.id)
     }
     
     // Get or create session
-    let session = await prisma.session.findUnique({
-      where: { sid }
-    })
+    let { data: session, error: sessionError } = await supabase
+      .from('sessions')
+      .select('*')
+      .eq('sid', sid)
+      .single()
     
     if (!session) {
-      session = await prisma.session.create({
-        data: {
+      const { data: newSession, error: createError } = await supabase
+        .from('sessions')
+        .insert([{ 
           sid,
-          visitorId: visitor.id
-        }
-      })
+          visitor_id: visitor.id
+        }])
+        .select()
+        .single()
+      
+      if (createError) {
+        console.error('Error creating session:', createError)
+        return NextResponse.json({ error: 'Failed to create session' }, { status: 500 })
+      }
+      session = newSession
     } else {
-      await prisma.session.update({
-        where: { id: session.id },
-        data: { lastSeenAt: new Date() }
-      })
+      // Update last_seen_at
+      await supabase
+        .from('sessions')
+        .update({ last_seen_at: new Date().toISOString() })
+        .eq('id', session.id)
     }
     
     // Store events
     const eventData = events.map((event: any) => ({
       type: event.type,
-      visitorId: visitor.id,
-      sessionId: session.id,
+      visitor_id: visitor.id,
+      session_id: session.id,
       path: event.path,
-      sectionId: event.sectionId,
+      section_id: event.sectionId,
       payload: event.payload,
-      ipHash: hashIP(ip),
-      userAgent: event.payload?.user_agent
+      ip_hash: hashIP(ip),
+      user_agent: event.payload?.user_agent
     }))
     
-    await prisma.event.createMany({
-      data: eventData
-    })
+    const { error: eventsError } = await supabase
+      .from('events')
+      .insert(eventData)
+    
+    if (eventsError) {
+      console.error('Error storing events:', eventsError)
+      return NextResponse.json({ error: 'Failed to store events' }, { status: 500 })
+    }
     
     return NextResponse.json({ success: true })
   } catch (error) {
