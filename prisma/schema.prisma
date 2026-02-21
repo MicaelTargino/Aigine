@@ -1,0 +1,86 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Visitor {
+  id          String    @id @default(cuid())
+  vid         String    @unique
+  firstSeenAt DateTime  @default(now())
+  lastSeenAt  DateTime  @default(now())
+  sessions    Session[]
+  events      Event[]
+  leads       Lead[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([vid])
+  @@index([firstSeenAt])
+}
+
+model Session {
+  id         String   @id @default(cuid())
+  sid        String   @unique
+  visitor    Visitor  @relation(fields: [visitorId], references: [id])
+  visitorId  String
+  startedAt  DateTime @default(now())
+  lastSeenAt DateTime @default(now())
+  events     Event[]
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([sid])
+  @@index([visitorId])
+  @@index([startedAt])
+}
+
+model Event {
+  id         String   @id @default(cuid())
+  type       String
+  visitor    Visitor  @relation(fields: [visitorId], references: [id])
+  visitorId  String
+  session    Session? @relation(fields: [sessionId], references: [id])
+  sessionId  String?
+  path       String?
+  sectionId  String?
+  payload    Json?
+  ipHash     String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  @@index([type, createdAt])
+  @@index([path, createdAt])
+  @@index([visitorId, createdAt])
+  @@index([sectionId, createdAt])
+  @@index([createdAt])
+}
+
+model Lead {
+  id               String   @id @default(cuid())
+  visitor          Visitor? @relation(fields: [visitorId], references: [id])
+  visitorId        String?
+  name             String
+  email            String
+  company          String?
+  role             String?
+  teamSize         String?
+  repoSize         String?
+  plan             String?
+  budgetRange      String?
+  noBrainerPrice   Float?
+  urgency          String?
+  disappointment   String?
+  aiTools          String?
+  pain             String?  @db.Text
+  notes            Json?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([email])
+  @@index([plan])
+  @@index([createdAt])
+}
